@@ -10,7 +10,7 @@ using namespace iodrivers_base;
 
 Task::Task(std::string const& name)
     : TaskBase(name)
-    , mDriver(0), mStream(0), mListener(new PortListener(_io_read_listener, _io_write_listener))
+    , mDriver(0), mStream(0), mListener(0)
 {
     _io_write_timeout.set(base::Time::fromSeconds(1));
     _io_read_timeout.set(base::Time::fromSeconds(1));
@@ -19,7 +19,7 @@ Task::Task(std::string const& name)
 
 Task::Task(std::string const& name, RTT::ExecutionEngine* engine)
     : TaskBase(name, engine)
-    , mDriver(0), mStream(0), mListener(new PortListener(_io_read_listener, _io_write_listener))
+    , mDriver(0), mStream(0), mListener(0)
 {
     _io_write_timeout.set(base::Time::fromSeconds(1));
     _io_read_timeout.set(base::Time::fromSeconds(1));
@@ -28,13 +28,14 @@ Task::Task(std::string const& name, RTT::ExecutionEngine* engine)
 
 Task::~Task()
 {
-    delete mListener;
 }
 
 void Task::setDriver(Driver* driver)
 {
-    if (mDriver && mListener)
+    if (mDriver && mListener) {
         mDriver->removeListener(mListener);
+        mListener = 0;
+    }
     mDriver = driver;
     mStream = 0;
 }
@@ -54,6 +55,9 @@ bool Task::configureHook()
 
     if (! TaskBase::configureHook())
         return false;
+
+    if (!mListener)
+        mListener = new PortListener(_io_read_listener, _io_write_listener);
 
     mDriver->addListener(mListener);
 
@@ -178,7 +182,10 @@ void Task::cleanupHook()
 
     if (mDriver) // the subclass could have decided to delete the driver before calling us
     {
-        mDriver->removeListener(mListener);
+        if (mListener) {
+            mDriver->removeListener(mListener);
+            mListener = 0;
+        }
         mDriver->close();
     }
 
