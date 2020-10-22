@@ -113,16 +113,10 @@ bool Task::startHook()
     return true;
 }
 
-bool Task::hasIO(bool first_time)
+bool Task::hasIO()
 {
     if (mDriver->getFileDescriptor() == Driver::INVALID_FD) {
         return mStream->hasQueuedData();
-    }
-
-    RTT::extras::FileDescriptorActivity* fd_activity =
-        getActivity<RTT::extras::FileDescriptorActivity>();
-    if (first_time && fd_activity) {
-        return fd_activity->isUpdated(mDriver->getFileDescriptor());
     }
 
     try {
@@ -153,7 +147,7 @@ void Task::updateHook()
         updateIOStatus();
 
     bool first_time = true;
-    while (hasIO(first_time)) {
+    while (hasIO()) {
         first_time = false;
         do {
             processIO();
